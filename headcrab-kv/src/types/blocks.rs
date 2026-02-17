@@ -1,4 +1,4 @@
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Block {
     pub name: String,
     pub blocks: Vec<Block>,

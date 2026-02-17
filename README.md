@@ -13,4 +13,4 @@ Parts of the library and their status
 | headcrab-kv   | WIP     |
 | headcrab-mdl  | Planned |
 | headcrab-vpk  | Planned |
-| headcrab-vtf  | Planned |
+| headcrab-vtf  | WIP     |

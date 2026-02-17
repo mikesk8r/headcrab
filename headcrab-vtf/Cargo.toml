@@ -1,0 +1,8 @@
+[package]
+name = "headcrab-vtf"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bitflags = "2.11.0"
+scroll = "0.13.0"

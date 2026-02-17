@@ -12,6 +12,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitflags"
+version = "2.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "843867be96c8daad0d758b57df9392b6d8d271134fce549de6ce169ff98a92af"
+
+[[package]]
 name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -22,6 +28,14 @@ name = "headcrab-kv"
 version = "0.0.1"
 dependencies = [
  "logos",
+]
+
+[[package]]
+name = "headcrab-vtf"
+version = "0.1.0"
+dependencies = [
+ "bitflags",
+ "scroll",
 ]
 
 [[package]]
@@ -96,6 +110,12 @@ name = "regex-syntax"
 version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a96887878f22d7bad8a3b6dc5b7440e0ada9a245242924394987b21cf2210a4c"
+
+[[package]]
+name = "scroll"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c1257cd4248b4132760d6524d6dda4e053bc648c9070b960929bf50cfb1e7add"
 
 [[package]]
 name = "syn"

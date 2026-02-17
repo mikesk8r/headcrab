@@ -1,3 +1,4 @@
+/// A generic block containing keys and optionally sub-blocks.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Block {
     pub name: String,

@@ -1,3 +1,4 @@
+/// A generic key with a string value.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Key(pub String, pub String);
 

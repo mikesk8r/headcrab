@@ -1,4 +1,4 @@
-/// An array containing keys or sub-blocks.
+/// An array containing keys, arrays, or sub-blocks.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Array {
     pub name: String,
@@ -7,7 +7,26 @@ pub struct Array {
     pub keys: Vec<super::Key>,
 }
 
+impl super::ArrayOrBlock for Array {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn push_array(&mut self, array: super::Array) {
+        self.arrays.push(array)
+    }
+
+    fn push_block(&mut self, block: super::Block) {
+        self.blocks.push(block)
+    }
+
+    fn push_key(&mut self, key: super::Key) {
+        self.keys.push(key)
+    }
+}
+
 impl Array {
+    #[allow(dead_code)]
     pub fn to_strings(&self) -> Vec<String> {
         let mut block_string = vec![];
 

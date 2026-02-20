@@ -7,11 +7,29 @@ pub struct Block {
     pub keys: Vec<super::Key>,
 }
 
+impl super::ArrayOrBlock for Block {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn push_array(&mut self, array: super::Array) {
+        self.arrays.push(array)
+    }
+
+    fn push_block(&mut self, block: super::Block) {
+        self.blocks.push(block)
+    }
+
+    fn push_key(&mut self, key: super::Key) {
+        self.keys.push(key)
+    }
+}
+
 impl Block {
     pub fn to_strings(&self) -> Vec<String> {
         let mut block_string = vec![];
 
-        block_string.push(format!("{}\n", self.name));
+        block_string.push(format!("\"{}\"\n", self.name));
         block_string.push("{\n".to_string());
 
         for key in self.keys.clone() {

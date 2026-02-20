@@ -11,11 +11,13 @@ pub use key::*;
 
 use tokens::*;
 
+#[allow(dead_code)]
 #[derive(Debug, Eq, PartialEq)]
 pub struct KV1Tree {
     pub blocks: Vec<Block>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, PartialEq)]
 pub struct ParsingError;
 
@@ -51,9 +53,7 @@ impl FromStr for KV1Tree {
                             .keys
                             .push(Key(name.to_string(), value.to_string()));
                     }
-                    KV1Token::LeftBrace => {
-                        depth += 1;
-                    }
+                    KV1Token::LeftBrace => depth += 1,
                     KV1Token::RightBrace => {
                         depth -= 1;
                         if depth > 0 {
@@ -71,5 +71,19 @@ impl FromStr for KV1Tree {
         }
 
         Ok(KV1Tree { blocks: blocks })
+    }
+}
+
+impl ToString for KV1Tree {
+    fn to_string(&self) -> String {
+        let mut string = "".to_string();
+
+        for block in &self.blocks {
+            for line in block.to_strings() {
+                string += line.as_str();
+            }
+        }
+
+        string
     }
 }

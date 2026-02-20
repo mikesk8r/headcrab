@@ -5,10 +5,10 @@ use logos::Logos;
 pub enum KV2Token {
     #[regex("<!--[^<!-]+-->")]
     InitialComment,
-    #[regex("\"[[:alnum:]]+\"")]
-    Block,
-    #[regex("\"[[:alnum:]]+\" \"element_array\"")]
+    #[regex("\"[^\"]+\" \"element_array\"")]
     Array,
+    #[regex("\"[^\"]+\"")]
+    Block,
     #[regex("\"[^\"]+\"[ \t]+\"[^\"]+\"[ \t]+\"[^\"]+\"")]
     PairWithType,
     #[token("{")]

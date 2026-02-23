@@ -9,4 +9,5 @@
 * Finish all the VTF flags
 * Add support for more formats (DXT5, UV88, etc.)
 * Add support for more resource types
+* Parse mipmaps
 * Support for VTFs <7.3

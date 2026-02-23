@@ -1,7 +1,5 @@
-use std::num;
-
 use bitflags::bitflags;
-use scroll::{Pread, ctx};
+use scroll::Pread;
 
 bitflags! {
     struct VTFFlags: u32 {
@@ -13,39 +11,103 @@ bitflags! {
     }
 }
 
+// https://developer.valvesoftware.com/wiki/VTF_(Valve_Texture_Format)#Image_format
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum ImageDataFormat {
     #[default]
     Unknown,
+    RGBA8888,
+    ABGR8888,
+    RGB888,
+    BGR888,
     ARGB8888,
     DXT1,
 }
 
+// https://developer.valvesoftware.com/wiki/VTF_(Valve_Texture_Format)#Image_format
 pub fn get_format_from_id(format: i32) -> ImageDataFormat {
     use ImageDataFormat::*;
 
     return match format {
         -1 => Unknown,
+        0 => RGBA8888,
+        1 => ABGR8888,
+        2 => RGB888,
+        3 => BGR888,
         11 => ARGB8888,
         13 => DXT1,
         _ => Unknown,
     };
 }
 
+// https://developer.valvesoftware.com/wiki/VTF_(Valve_Texture_Format)#Image_format
 fn get_color(format: &ImageDataFormat, bytes: &[u8]) -> (f32, f32, f32, f32) {
     use ImageDataFormat::*;
 
     return match format {
         Unknown => (0.0, 0.0, 0.0, 0.0),
-        ARGB8888 => {
-            let alpha: u8 = bytes.pread(0).unwrap();
+        RGBA8888 => {
+            let max: f32 = u8::MAX.into();
             let red: u8 = bytes.pread(0).unwrap();
-            let green: u8 = bytes.pread(0).unwrap();
-            let blue: u8 = bytes.pread(0).unwrap();
+            let red: f32 = red.into();
+            let green: u8 = bytes.pread(1).unwrap();
+            let green: f32 = green.into();
+            let blue: u8 = bytes.pread(2).unwrap();
+            let blue: f32 = blue.into();
+            let alpha: u8 = bytes.pread(3).unwrap();
+            let alpha: f32 = alpha.into();
 
-            (alpha.into(), red.into(), green.into(), blue.into())
+            (red / max, green / max, blue / max, alpha / max)
         }
-        DX1 => {
+        ABGR8888 => {
+            let max: f32 = u8::MAX.into();
+            let red: u8 = bytes.pread(3).unwrap();
+            let red: f32 = red.into();
+            let green: u8 = bytes.pread(2).unwrap();
+            let green: f32 = green.into();
+            let blue: u8 = bytes.pread(1).unwrap();
+            let blue: f32 = blue.into();
+            let alpha: u8 = bytes.pread(0).unwrap();
+            let alpha: f32 = alpha.into();
+
+            (red / max, green / max, blue / max, alpha / max)
+        }
+        RGB888 => {
+            let max: f32 = u8::MAX.into();
+            let red: u8 = bytes.pread(0).unwrap();
+            let red: f32 = red.into();
+            let green: u8 = bytes.pread(1).unwrap();
+            let green: f32 = green.into();
+            let blue: u8 = bytes.pread(2).unwrap();
+            let blue: f32 = blue.into();
+
+            (red / max, green / max, blue / max, 1.0)
+        }
+        BGR888 => {
+            let max: f32 = u8::MAX.into();
+            let red: u8 = bytes.pread(3).unwrap();
+            let red: f32 = red.into();
+            let green: u8 = bytes.pread(2).unwrap();
+            let green: f32 = green.into();
+            let blue: u8 = bytes.pread(1).unwrap();
+            let blue: f32 = blue.into();
+
+            (red / max, green / max, blue / max, 1.0)
+        }
+        ARGB8888 => {
+            let max: f32 = u8::MAX.into();
+            let red: u8 = bytes.pread(1).unwrap();
+            let red: f32 = red.into();
+            let green: u8 = bytes.pread(2).unwrap();
+            let green: f32 = green.into();
+            let blue: u8 = bytes.pread(3).unwrap();
+            let blue: f32 = blue.into();
+            let alpha: u8 = bytes.pread(0).unwrap();
+            let alpha: f32 = alpha.into();
+
+            (red / max, green / max, blue / max, alpha / max)
+        }
+        DXT1 => {
             // todo
             (0.0, 0.0, 0.0, 0.0)
         }
@@ -56,7 +118,7 @@ fn get_color(format: &ImageDataFormat, bytes: &[u8]) -> (f32, f32, f32, f32) {
 struct ImageData {
     pub is_hi_res: bool,
     /// The image's data in pixels.
-    /// It is stored as a list of rows of (red, green, blue, alpha)
+    /// It is stored as a list of rows of [red, green, blue, alpha (0 = fully transparent)]
     pub data: Vec<Vec<(f32, f32, f32, f32)>>,
 }
 
@@ -92,6 +154,7 @@ struct VTF {
 }
 
 impl VTF {
+    #[allow(dead_code)]
     fn from_bytes(bytes: &[u8]) -> VTF {
         let mut vtf = VTF::default();
 
@@ -100,7 +163,7 @@ impl VTF {
         vtf.version = format!("{}.{}", ver_major, ver_minor)
             .parse::<f32>()
             .unwrap();
-        let header_size: u32 = bytes.pread(12).unwrap();
+        // let header_size: u32 = bytes.pread(12).unwrap();
         vtf.width = bytes.pread(16).unwrap();
         vtf.height = bytes.pread(18).unwrap();
         vtf.flags = bytes.pread(20).unwrap();
@@ -132,70 +195,72 @@ impl VTF {
                 let flags = bytes.pread::<u8>(pos + 3).unwrap();
                 let offset = bytes.pread::<u32>(pos + 4).unwrap();
 
-                match tag {
-                    (0x01, 0x00, 0x00) | (0x30, 0x00, 0x00) => {
-                        use ImageDataFormat::*;
+                if tag == (0x01, 0x00, 0x00) || tag == (0x30, 0x00, 0x00) {
+                    use ImageDataFormat::*;
 
-                        let hi_res = match tag.0 {
-                            0x30 => true,
-                            _ => false,
-                        };
-                        let format = if hi_res == true {
-                            vtf.high_res_image_format
-                        } else {
-                            vtf.low_res_image_format
-                        };
-                        let height = if hi_res == true {
-                            vtf.height
-                        } else {
-                            vtf.low_res_image_height.into()
-                        };
-                        let width = if hi_res == true {
-                            vtf.width
-                        } else {
-                            vtf.low_res_image_width.into()
-                        };
-                        let read_length = match format {
-                            ARGB8888 => 4,
-                            _ => 0,
-                        };
-                        let mut buffer: Vec<Vec<(f32, f32, f32, f32)>> = vec![];
-                        let mut j = 0;
-                        let mut k = 0;
-                        let mut l = 0;
-                        // dear god this is awful :sob:
-                        while j < height {
-                            let mut row: Vec<(f32, f32, f32, f32)> = vec![];
-                            while k < width {
-                                let mut color: Vec<u8> = vec![];
-                                while l < read_length {
-                                    let pos: usize = (((j * vtf.width * read_length)
-                                        + k * read_length)
-                                        + l
-                                        + offset as u16)
-                                        .into();
-                                    color.push(bytes.pread(pos).unwrap());
-                                    l += 1;
-                                }
-                                row.push(get_color(&format, color.as_slice()));
-                                l = 0;
-                                k += 1;
+                    let hi_res = match tag.0 {
+                        0x30 => true,
+                        _ => false,
+                    };
+                    let format = if hi_res == true {
+                        vtf.high_res_image_format
+                    } else {
+                        vtf.low_res_image_format
+                    };
+                    let height = if hi_res == true {
+                        vtf.height
+                    } else {
+                        vtf.low_res_image_height.into()
+                    };
+                    let width = if hi_res == true {
+                        vtf.width
+                    } else {
+                        vtf.low_res_image_width.into()
+                    };
+                    let read_length = match format {
+                        ABGR8888 | ARGB8888 | RGBA8888 => 4,
+                        BGR888 | RGB888 => 3,
+                        _ => 0,
+                    };
+                    let mut buffer: Vec<Vec<(f32, f32, f32, f32)>> = vec![];
+                    let mut j = 0;
+                    let mut k = 0;
+                    let mut l = 0;
+                    // dear god this is awful :sob:
+                    while j < height {
+                        let mut row: Vec<(f32, f32, f32, f32)> = vec![];
+                        while k < width {
+                            let mut color: Vec<u8> = vec![];
+                            while l < read_length {
+                                let pos: usize = (((j * vtf.width * read_length)
+                                    + k * read_length)
+                                    + l
+                                    + offset as u16)
+                                    .into();
+                                color.push(bytes.pread(pos).unwrap());
+                                l += 1;
                             }
-                            buffer.push(row);
-                            k = 0;
-                            j += 1;
+                            row.push(get_color(&format, color.as_slice()));
+                            l = 0;
+                            k += 1;
                         }
-
-                        vtf.image_data.push(ImageData {
-                            is_hi_res: hi_res,
-                            data: buffer,
-                        })
+                        buffer.push(row);
+                        k = 0;
+                        j += 1;
                     }
-                    _ => vtf.resource_entries.push(ResourceEntry {
-                        tag: tag,
-                        flags: flags,
-                        offset: offset,
-                    }),
+
+                    vtf.image_data.push(ImageData {
+                        is_hi_res: hi_res,
+                        data: buffer,
+                    });
+                } else {
+                    match tag {
+                        _ => vtf.resource_entries.push(ResourceEntry {
+                            tag: tag,
+                            flags: flags,
+                            offset: offset,
+                        }),
+                    }
                 }
 
                 i += 1;

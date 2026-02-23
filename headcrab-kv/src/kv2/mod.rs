@@ -52,7 +52,6 @@ impl FromStr for KV2Tree {
                 }
 
                 let token = token.unwrap();
-                println!("{:?} {}", token, stack.len());
                 match token {
                     KV2Token::Array => {
                         stack.push(Box::new(Array {

@@ -25,7 +25,7 @@ pub enum ImageDataFormat {
 }
 
 // https://developer.valvesoftware.com/wiki/VTF_(Valve_Texture_Format)#Image_format
-pub fn get_format_from_id(format: i32) -> ImageDataFormat {
+fn get_format_from_id(format: i32) -> ImageDataFormat {
     use ImageDataFormat::*;
 
     return match format {
@@ -41,89 +41,66 @@ pub fn get_format_from_id(format: i32) -> ImageDataFormat {
 }
 
 // https://developer.valvesoftware.com/wiki/VTF_(Valve_Texture_Format)#Image_format
-fn get_color(format: &ImageDataFormat, bytes: &[u8]) -> (f32, f32, f32, f32) {
+fn get_color(format: &ImageDataFormat, bytes: &[u8]) -> (u8, u8, u8, u8) {
     use ImageDataFormat::*;
 
     return match format {
-        Unknown => (0.0, 0.0, 0.0, 0.0),
+        Unknown => (0, 0, 0, 0),
         RGBA8888 => {
-            let max: f32 = u8::MAX.into();
             let red: u8 = bytes.pread(0).unwrap();
-            let red: f32 = red.into();
             let green: u8 = bytes.pread(1).unwrap();
-            let green: f32 = green.into();
             let blue: u8 = bytes.pread(2).unwrap();
-            let blue: f32 = blue.into();
             let alpha: u8 = bytes.pread(3).unwrap();
-            let alpha: f32 = alpha.into();
 
-            (red / max, green / max, blue / max, alpha / max)
+            (red, green, blue, alpha)
         }
         ABGR8888 => {
-            let max: f32 = u8::MAX.into();
             let red: u8 = bytes.pread(3).unwrap();
-            let red: f32 = red.into();
             let green: u8 = bytes.pread(2).unwrap();
-            let green: f32 = green.into();
             let blue: u8 = bytes.pread(1).unwrap();
-            let blue: f32 = blue.into();
             let alpha: u8 = bytes.pread(0).unwrap();
-            let alpha: f32 = alpha.into();
 
-            (red / max, green / max, blue / max, alpha / max)
+            (red, green, blue, alpha)
         }
         RGB888 => {
-            let max: f32 = u8::MAX.into();
             let red: u8 = bytes.pread(0).unwrap();
-            let red: f32 = red.into();
             let green: u8 = bytes.pread(1).unwrap();
-            let green: f32 = green.into();
             let blue: u8 = bytes.pread(2).unwrap();
-            let blue: f32 = blue.into();
 
-            (red / max, green / max, blue / max, 1.0)
+            (red, green, blue, 255)
         }
         BGR888 => {
-            let max: f32 = u8::MAX.into();
             let red: u8 = bytes.pread(3).unwrap();
-            let red: f32 = red.into();
             let green: u8 = bytes.pread(2).unwrap();
-            let green: f32 = green.into();
             let blue: u8 = bytes.pread(1).unwrap();
-            let blue: f32 = blue.into();
 
-            (red / max, green / max, blue / max, 1.0)
+            (red, green, blue, 255)
         }
         ARGB8888 => {
-            let max: f32 = u8::MAX.into();
             let red: u8 = bytes.pread(1).unwrap();
-            let red: f32 = red.into();
             let green: u8 = bytes.pread(2).unwrap();
-            let green: f32 = green.into();
             let blue: u8 = bytes.pread(3).unwrap();
-            let blue: f32 = blue.into();
             let alpha: u8 = bytes.pread(0).unwrap();
-            let alpha: f32 = alpha.into();
 
-            (red / max, green / max, blue / max, alpha / max)
+            (red, green, blue, alpha)
         }
         DXT1 => {
             // todo
-            (0.0, 0.0, 0.0, 0.0)
+            (0, 0, 0, 0)
         }
     };
 }
 
-#[derive(Debug, PartialEq)]
-struct ImageData {
+#[derive(Clone, Debug, PartialEq)]
+pub struct ImageData {
     pub is_hi_res: bool,
     /// The image's data in pixels.
-    /// It is stored as a list of rows of [red, green, blue, alpha (0 = fully transparent)]
-    pub data: Vec<Vec<(f32, f32, f32, f32)>>,
+    /// It is stored as a list of [red, green, blue, alpha)]
+    pub data: Vec<(u8, u8, u8, u8)>,
 }
 
-#[derive(Debug, Eq, PartialEq)]
-struct ResourceEntry {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResourceEntry {
     pub tag: (u8, u8, u8),
     pub flags: u8,
     pub offset: u32,
@@ -131,7 +108,7 @@ struct ResourceEntry {
 }
 
 #[derive(Debug, Default, PartialEq)]
-struct VTF {
+pub struct VTF {
     pub version: f32,
     pub width: u16,
     pub height: u16,
@@ -154,8 +131,7 @@ struct VTF {
 }
 
 impl VTF {
-    #[allow(dead_code)]
-    fn from_bytes(bytes: &[u8]) -> VTF {
+    pub fn from_bytes(bytes: &[u8]) -> VTF {
         let mut vtf = VTF::default();
 
         let ver_major: u32 = bytes.pread(4).unwrap();
@@ -222,30 +198,14 @@ impl VTF {
                         BGR888 | RGB888 => 3,
                         _ => 0,
                     };
-                    let mut buffer: Vec<Vec<(f32, f32, f32, f32)>> = vec![];
+                    let mut buffer: Vec<(u8, u8, u8, u8)> = vec![];
                     let mut j = 0;
-                    let mut k = 0;
-                    let mut l = 0;
-                    // dear god this is awful :sob:
-                    while j < height {
-                        let mut row: Vec<(f32, f32, f32, f32)> = vec![];
-                        while k < width {
-                            let mut color: Vec<u8> = vec![];
-                            while l < read_length {
-                                let pos: usize = (((j * vtf.width * read_length)
-                                    + k * read_length)
-                                    + l
-                                    + offset as u16)
-                                    .into();
-                                color.push(bytes.pread(pos).unwrap());
-                                l += 1;
-                            }
-                            row.push(get_color(&format, color.as_slice()));
-                            l = 0;
-                            k += 1;
-                        }
-                        buffer.push(row);
-                        k = 0;
+                    let limit = (height as usize) * (width as usize);
+
+                    while j < limit {
+                        let readpos = j * read_length + offset as usize;
+                        let color = &bytes[readpos..(readpos + read_length)];
+                        buffer.push(get_color(&format, color));
                         j += 1;
                     }
 

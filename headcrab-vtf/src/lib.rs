@@ -7,7 +7,27 @@ bitflags! {
         const VTF_TRILINEAR = 0x00000002;
         const VTF_CLAMPS = 0x00000004;
         const VTF_CLAMPT = 0x00000008;
-        // todo...
+        const VTF_ANISOTROPIC = 0x00000010;
+        const VTF_HINT_DXT5 = 0x00000020;
+        const VTF_PWL_CORRECTED = 0x00000040;
+        const VTF_NORMAL = 0x00000080;
+        const VTF_NOMIP = 0x00000100;
+        const VTF_NOLOD = 0x00000200;
+        const VTF_ALL_MIPS = 0x00000400;
+        const VTF_PROCEDURAL = 0x00000800;
+        const VTF_ONEBITALPHA = 0x00001000;
+        const VTF_EIGHTBITALPHA = 0x00002000;
+        const VTF_ENVMAP = 0x00004000;
+        const VTF_RENDERTARGET = 0x00008000;
+        const VTF_DEPTHRENDERTARGET = 0x00010000;
+        const VTF_NODEBUGOVERRIDE = 0x00020000;
+        const VTF_SINGLECOPY = 0x00040000;
+        const VTF_PRE_SRGB = 0x00080000;
+        const VTF_NODEPTHBUFFER = 0x00800000;
+        const VTF_CLAMPU = 0x02000000;
+        const VTF_VERTEXTEXTURE = 0x04000000;
+        const VTF_SSBUMP = 0x08000000;
+        const VTF_BORDER = 0x20000000;
     }
 }
 
@@ -20,6 +40,8 @@ pub enum ImageDataFormat {
     ABGR8888,
     RGB888,
     BGR888,
+    RGB888Bluescreen,
+    BGR888Bluescreen,
     ARGB8888,
     DXT1,
 }
@@ -34,6 +56,8 @@ fn get_format_from_id(format: i32) -> ImageDataFormat {
         1 => ABGR8888,
         2 => RGB888,
         3 => BGR888,
+        9 => RGB888Bluescreen,
+        10 => BGR888Bluescreen,
         11 => ARGB8888,
         13 => DXT1,
         _ => Unknown,
@@ -70,9 +94,35 @@ fn get_color(format: &ImageDataFormat, bytes: &[u8]) -> (u8, u8, u8, u8) {
             (red, green, blue, 255)
         }
         BGR888 => {
+            let red: u8 = bytes.pread(2).unwrap();
+            let green: u8 = bytes.pread(1).unwrap();
+            let blue: u8 = bytes.pread(0).unwrap();
+
+            (red, green, blue, 255)
+        }
+        RGB888Bluescreen => {
+            let red: u8 = bytes.pread(0).unwrap();
+            let green: u8 = bytes.pread(1).unwrap();
+            let blue: u8 = bytes.pread(2).unwrap();
+
+            if blue == 255 {
+                if red + green == 0 {
+                    return (0, 0, 255, 0);
+                }
+            }
+
+            (red, green, blue, 255)
+        }
+        BGR888Bluescreen => {
             let red: u8 = bytes.pread(3).unwrap();
             let green: u8 = bytes.pread(2).unwrap();
             let blue: u8 = bytes.pread(1).unwrap();
+
+            if blue == 255 {
+                if red + green == 0 {
+                    return (0, 0, 255, 0);
+                }
+            }
 
             (red, green, blue, 255)
         }

@@ -1,21 +1,6 @@
 // https://developer.valvesoftware.com/wiki/VTF_(Valve_Texture_Format)#Image_format
+use super::ImageDataFormat::{self};
 use scroll::Pread;
-
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub enum ImageDataFormat {
-    #[default]
-    Unknown,
-    RGBA8888,
-    ABGR8888,
-    RGB888,
-    BGR888,
-    RGB888Bluescreen,
-    BGR888Bluescreen,
-    ARGB8888,
-    DXT1,
-    DXT3,
-    DXT5,
-}
 
 pub fn get_format_from_id(format: i32) -> ImageDataFormat {
     use ImageDataFormat::*;
@@ -105,7 +90,13 @@ pub fn get_color(format: &ImageDataFormat, bytes: &[u8]) -> (u8, u8, u8, u8) {
 
             (red, green, blue, alpha)
         }
-        // we don't really want to use this function with dxt...
-        DXT1 | DXT3 | DXT5 => (0, 0, 0, 0),
+        DXT1 | DXT3 | DXT5 => {
+            let red: u8 = bytes.pread(1).unwrap();
+            let green: u8 = bytes.pread(2).unwrap();
+            let blue: u8 = bytes.pread(3).unwrap();
+            let alpha: u8 = bytes.pread(0).unwrap();
+
+            (red, green, blue, alpha)
+        }
     };
 }

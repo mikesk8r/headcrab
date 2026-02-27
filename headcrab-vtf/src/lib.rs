@@ -1,5 +1,3 @@
-use std::fs::read;
-
 use bitflags::bitflags;
 use scroll::Pread;
 
@@ -16,12 +14,17 @@ pub enum ImageDataFormat {
     ABGR8888,
     RGB888,
     BGR888,
+    I8,
+    IA88,
+    A8,
     RGB888Bluescreen,
     BGR888Bluescreen,
     ARGB8888,
     DXT1,
     DXT3,
     DXT5,
+    /// Image data layout: [u, v, 0, 255]
+    UV88,
 }
 
 bitflags! {
@@ -166,6 +169,8 @@ impl VTF {
                     let read_length = match format {
                         ABGR8888 | ARGB8888 | RGBA8888 => 4,
                         BGR888 | RGB888 => 3,
+                        IA88 | UV88 => 2,
+                        A8 | I8 => 1,
                         DXT1 | DXT3 | DXT5 => 4,
                         _ => 0,
                     };

@@ -1,6 +1,11 @@
 use bitflags::bitflags;
 use scroll::Pread;
 
+mod dxt;
+mod formats;
+
+use formats::*;
+
 bitflags! {
     struct VTFFlags: u32 {
         const VTF_POINTSAMPLE = 0x00000001;
@@ -29,116 +34,6 @@ bitflags! {
         const VTF_SSBUMP = 0x08000000;
         const VTF_BORDER = 0x20000000;
     }
-}
-
-// https://developer.valvesoftware.com/wiki/VTF_(Valve_Texture_Format)#Image_format
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub enum ImageDataFormat {
-    #[default]
-    Unknown,
-    RGBA8888,
-    ABGR8888,
-    RGB888,
-    BGR888,
-    RGB888Bluescreen,
-    BGR888Bluescreen,
-    ARGB8888,
-    DXT1,
-}
-
-// https://developer.valvesoftware.com/wiki/VTF_(Valve_Texture_Format)#Image_format
-fn get_format_from_id(format: i32) -> ImageDataFormat {
-    use ImageDataFormat::*;
-
-    return match format {
-        -1 => Unknown,
-        0 => RGBA8888,
-        1 => ABGR8888,
-        2 => RGB888,
-        3 => BGR888,
-        9 => RGB888Bluescreen,
-        10 => BGR888Bluescreen,
-        11 => ARGB8888,
-        13 => DXT1,
-        _ => Unknown,
-    };
-}
-
-// https://developer.valvesoftware.com/wiki/VTF_(Valve_Texture_Format)#Image_format
-fn get_color(format: &ImageDataFormat, bytes: &[u8]) -> (u8, u8, u8, u8) {
-    use ImageDataFormat::*;
-
-    return match format {
-        Unknown => (0, 0, 0, 0),
-        RGBA8888 => {
-            let red: u8 = bytes.pread(0).unwrap();
-            let green: u8 = bytes.pread(1).unwrap();
-            let blue: u8 = bytes.pread(2).unwrap();
-            let alpha: u8 = bytes.pread(3).unwrap();
-
-            (red, green, blue, alpha)
-        }
-        ABGR8888 => {
-            let red: u8 = bytes.pread(3).unwrap();
-            let green: u8 = bytes.pread(2).unwrap();
-            let blue: u8 = bytes.pread(1).unwrap();
-            let alpha: u8 = bytes.pread(0).unwrap();
-
-            (red, green, blue, alpha)
-        }
-        RGB888 => {
-            let red: u8 = bytes.pread(0).unwrap();
-            let green: u8 = bytes.pread(1).unwrap();
-            let blue: u8 = bytes.pread(2).unwrap();
-
-            (red, green, blue, 255)
-        }
-        BGR888 => {
-            let red: u8 = bytes.pread(2).unwrap();
-            let green: u8 = bytes.pread(1).unwrap();
-            let blue: u8 = bytes.pread(0).unwrap();
-
-            (red, green, blue, 255)
-        }
-        RGB888Bluescreen => {
-            let red: u8 = bytes.pread(0).unwrap();
-            let green: u8 = bytes.pread(1).unwrap();
-            let blue: u8 = bytes.pread(2).unwrap();
-
-            if blue == 255 {
-                if red + green == 0 {
-                    return (0, 0, 255, 0);
-                }
-            }
-
-            (red, green, blue, 255)
-        }
-        BGR888Bluescreen => {
-            let red: u8 = bytes.pread(3).unwrap();
-            let green: u8 = bytes.pread(2).unwrap();
-            let blue: u8 = bytes.pread(1).unwrap();
-
-            if blue == 255 {
-                if red + green == 0 {
-                    return (0, 0, 255, 0);
-                }
-            }
-
-            (red, green, blue, 255)
-        }
-        ARGB8888 => {
-            let red: u8 = bytes.pread(1).unwrap();
-            let green: u8 = bytes.pread(2).unwrap();
-            let blue: u8 = bytes.pread(3).unwrap();
-            let alpha: u8 = bytes.pread(0).unwrap();
-
-            (red, green, blue, alpha)
-        }
-        DXT1 => {
-            // todo
-            (0, 0, 0, 0)
-        }
-    };
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -251,6 +146,18 @@ impl VTF {
                     let mut buffer: Vec<(u8, u8, u8, u8)> = vec![];
                     let mut j = 0;
                     let limit = (height as usize) * (width as usize);
+
+                    if format == DXT1 {
+                        // need to impl dxt compression
+                        // ideally dxt compression would:
+                        // 1. decompress the data
+                        // 2. store it in a vec/buffer
+                        // 3. (maybe) overwrite `bytes` so that uncompressed data will be read, or find a different solution potentially
+                    }
+
+                    // ^^^^
+                    if format == DXT3 {}
+                    if format == DXT5 {}
 
                     while j < limit {
                         let readpos = j * read_length + offset as usize;

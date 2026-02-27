@@ -1,3 +1,5 @@
+use std::fs::read;
+
 use bitflags::bitflags;
 use scroll::Pread;
 
@@ -5,6 +7,22 @@ mod dxt;
 mod formats;
 
 use formats::*;
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum ImageDataFormat {
+    #[default]
+    Unknown,
+    RGBA8888,
+    ABGR8888,
+    RGB888,
+    BGR888,
+    RGB888Bluescreen,
+    BGR888Bluescreen,
+    ARGB8888,
+    DXT1,
+    DXT3,
+    DXT5,
+}
 
 bitflags! {
     struct VTFFlags: u32 {
@@ -107,7 +125,8 @@ impl VTF {
             let num_resources = bytes.pread::<u32>(68).unwrap();
             let mut i = 0;
             while num_resources > 0 && i < num_resources {
-                let pos: usize = (80 + i * 8).try_into().unwrap();
+                let pos = 80 + i as usize * 8;
+                let end = 80 + (i as usize + 1) * 8;
                 let tag = (
                     bytes.pread::<u8>(pos).unwrap(),
                     bytes.pread::<u8>(pos + 1).unwrap(),
@@ -115,6 +134,12 @@ impl VTF {
                 );
                 let flags = bytes.pread::<u8>(pos + 3).unwrap();
                 let offset = bytes.pread::<u32>(pos + 4).unwrap();
+                let mut last: usize = 0;
+                if num_resources - 1 != i {
+                    last = bytes.pread::<u32>(end + 4).unwrap() as usize;
+                } else {
+                    last = bytes.len();
+                }
 
                 if tag == (0x01, 0x00, 0x00) || tag == (0x30, 0x00, 0x00) {
                     use ImageDataFormat::*;
@@ -141,29 +166,38 @@ impl VTF {
                     let read_length = match format {
                         ABGR8888 | ARGB8888 | RGBA8888 => 4,
                         BGR888 | RGB888 => 3,
+                        DXT1 | DXT3 | DXT5 => 4,
                         _ => 0,
                     };
                     let mut buffer: Vec<(u8, u8, u8, u8)> = vec![];
                     let mut j = 0;
                     let limit = (height as usize) * (width as usize);
 
-                    if format == DXT1 {
-                        // need to impl dxt compression
-                        // ideally dxt compression would:
-                        // 1. decompress the data
-                        // 2. store it in a vec/buffer
-                        // 3. (maybe) overwrite `bytes` so that uncompressed data will be read, or find a different solution potentially
-                    }
-
-                    // ^^^^
-                    if format == DXT3 {}
-                    if format == DXT5 {}
-
-                    while j < limit {
+                    if format == DXT1 || format == DXT3 || format == DXT5 {
+                        let version = match format {
+                            DXT1 => 1,
+                            DXT3 => 3,
+                            DXT5 => 5,
+                            _ => 0,
+                        };
                         let readpos = j * read_length + offset as usize;
-                        let color = &bytes[readpos..(readpos + read_length)];
-                        buffer.push(get_color(&format, color));
-                        j += 1;
+                        let data = &bytes[readpos..last as usize];
+                        let decompressed =
+                            dxt::decode_dxt(version, data, width as usize, height as usize);
+                        let decompressed = decompressed.as_slice();
+                        while j * read_length < limit {
+                            let readpos = j * read_length;
+                            let color = &decompressed[readpos..(readpos + read_length)];
+                            buffer.push(get_color(&format, color));
+                            j += 1;
+                        }
+                    } else {
+                        while j < limit {
+                            let readpos = j * read_length + offset as usize;
+                            let color = &bytes[readpos..(readpos + read_length)];
+                            buffer.push(get_color(&format, color));
+                            j += 1;
+                        }
                     }
 
                     vtf.image_data.push(ImageData {

@@ -1,5 +1,8 @@
 // https://developer.valvesoftware.com/wiki/VTF_(Valve_Texture_Format)#Image_format
-use super::ImageDataFormat::{self};
+use super::{
+    ColorChannel,
+    ImageDataFormat::{self},
+};
 use scroll::Pread;
 
 pub fn get_format_from_id(format: i32) -> ImageDataFormat {
@@ -25,18 +28,21 @@ pub fn get_format_from_id(format: i32) -> ImageDataFormat {
     };
 }
 
-pub fn get_color(format: &ImageDataFormat, bytes: &[u8]) -> (u8, u8, u8, u8) {
+pub fn get_color<T>(format: &ImageDataFormat, bytes: &[u8]) -> (T, T, T, T)
+where
+    T: ColorChannel + From<u8>,
+{
     use ImageDataFormat::*;
 
     return match format {
-        Unknown => (0, 0, 0, 0),
+        Unknown => (0.into(), 0.into(), 0.into(), 0.into()),
         RGBA8888 => {
             let red: u8 = bytes.pread(0).unwrap();
             let green: u8 = bytes.pread(1).unwrap();
             let blue: u8 = bytes.pread(2).unwrap();
             let alpha: u8 = bytes.pread(3).unwrap();
 
-            (red, green, blue, alpha)
+            (red.into(), green.into(), blue.into(), alpha.into())
         }
         ABGR8888 => {
             let red: u8 = bytes.pread(3).unwrap();
@@ -44,37 +50,47 @@ pub fn get_color(format: &ImageDataFormat, bytes: &[u8]) -> (u8, u8, u8, u8) {
             let blue: u8 = bytes.pread(1).unwrap();
             let alpha: u8 = bytes.pread(0).unwrap();
 
-            (red, green, blue, alpha)
+            (red.into(), green.into(), blue.into(), alpha.into())
         }
         RGB888 => {
             let red: u8 = bytes.pread(0).unwrap();
             let green: u8 = bytes.pread(1).unwrap();
             let blue: u8 = bytes.pread(2).unwrap();
 
-            (red, green, blue, 255)
+            (red.into(), green.into(), blue.into(), 255.into())
         }
         BGR888 => {
             let red: u8 = bytes.pread(2).unwrap();
             let green: u8 = bytes.pread(1).unwrap();
             let blue: u8 = bytes.pread(0).unwrap();
 
-            (red, green, blue, 255)
+            (red.into(), green.into(), blue.into(), 255.into())
         }
         I8 => {
             let luminance: u8 = bytes.pread(0).unwrap();
 
-            (luminance, luminance, luminance, 255)
+            (
+                luminance.into(),
+                luminance.into(),
+                luminance.into(),
+                0.into(),
+            )
         }
         IA88 => {
             let luminance: u8 = bytes.pread(0).unwrap();
             let alpha: u8 = bytes.pread(0).unwrap();
 
-            (luminance, luminance, luminance, alpha)
+            (
+                luminance.into(),
+                luminance.into(),
+                luminance.into(),
+                alpha.into(),
+            )
         }
         A8 => {
             let alpha: u8 = bytes.pread(0).unwrap();
 
-            (255, 255, 255, alpha)
+            (255.into(), 255.into(), 255.into(), alpha.into())
         }
         RGB888Bluescreen => {
             let red: u8 = bytes.pread(0).unwrap();
@@ -83,11 +99,11 @@ pub fn get_color(format: &ImageDataFormat, bytes: &[u8]) -> (u8, u8, u8, u8) {
 
             if blue == 255 {
                 if red + green == 0 {
-                    return (0, 0, 255, 0);
+                    return (0.into(), 0.into(), 255.into(), 0.into());
                 }
             }
 
-            (red, green, blue, 255)
+            (red.into(), green.into(), blue.into(), 255.into())
         }
         BGR888Bluescreen => {
             let red: u8 = bytes.pread(3).unwrap();
@@ -96,11 +112,11 @@ pub fn get_color(format: &ImageDataFormat, bytes: &[u8]) -> (u8, u8, u8, u8) {
 
             if blue == 255 {
                 if red + green == 0 {
-                    return (0, 0, 255, 0);
+                    return (0.into(), 0.into(), 255.into(), 0.into());
                 }
             }
 
-            (red, green, blue, 255)
+            (red.into(), green.into(), blue.into(), 255.into())
         }
         ARGB8888 => {
             let red: u8 = bytes.pread(1).unwrap();
@@ -108,7 +124,7 @@ pub fn get_color(format: &ImageDataFormat, bytes: &[u8]) -> (u8, u8, u8, u8) {
             let blue: u8 = bytes.pread(3).unwrap();
             let alpha: u8 = bytes.pread(0).unwrap();
 
-            (red, green, blue, alpha)
+            (red.into(), green.into(), blue.into(), alpha.into())
         }
         DXT1 | DXT3 | DXT5 => {
             let red: u8 = bytes.pread(1).unwrap();
@@ -116,13 +132,13 @@ pub fn get_color(format: &ImageDataFormat, bytes: &[u8]) -> (u8, u8, u8, u8) {
             let blue: u8 = bytes.pread(3).unwrap();
             let alpha: u8 = bytes.pread(0).unwrap();
 
-            (red, green, blue, alpha)
+            (red.into(), green.into(), blue.into(), alpha.into())
         }
         UV88 => {
             let red: u8 = bytes.pread(0).unwrap();
             let green: u8 = bytes.pread(1).unwrap();
 
-            (red, green, 0, 255)
+            (red.into(), green.into(), 0.into(), 255.into())
         }
     };
 }

@@ -23,8 +23,12 @@ pub enum ImageDataFormat {
     DXT1,
     DXT3,
     DXT5,
+    BGRX8888,
     /// Image data layout: [u, v, 0, 255]
     UV88,
+    UVWQ8888,
+    RGBA16161616,
+    UVLX8888,
 }
 
 bitflags! {
@@ -88,7 +92,8 @@ pub struct VTF<T>
 where
     T: ColorChannel,
 {
-    pub version: f32,
+    /// (maj, min) -- for example (7, 6) for VTF 7.6
+    pub version: (u8, u8),
     pub width: u16,
     pub height: u16,
     /// See VTFFlags
@@ -116,16 +121,14 @@ where
 
 impl<T> VTF<T>
 where
-    T: ColorChannel + Default + From<u8>,
+    T: ColorChannel + Default + From<u8> + From<u16>,
 {
     pub fn from_bytes(bytes: &[u8]) -> VTF<T> {
         let mut vtf: VTF<T> = VTF::default();
 
         let ver_major: u32 = bytes.pread(4).unwrap();
         let ver_minor: u32 = bytes.pread(8).unwrap();
-        vtf.version = format!("{}.{}", ver_major, ver_minor)
-            .parse::<f32>()
-            .unwrap();
+        vtf.version = (ver_major as u8, ver_minor as u8);
         let header_size: u32 = bytes.pread(12).unwrap();
         vtf.width = bytes.pread(16).unwrap();
         vtf.height = bytes.pread(18).unwrap();
@@ -142,13 +145,13 @@ where
         vtf.thumbnail_format = get_format_from_id(bytes.pread(57).unwrap());
         vtf.thumbnail_width = bytes.pread(61).unwrap();
         vtf.thumbnail_height = bytes.pread(62).unwrap();
-        if vtf.version >= 7.2 {
+        if vtf.version.1 >= 2 {
             vtf.depth = bytes.pread(63).unwrap();
         }
 
         let mut skip: usize = header_size as usize;
         let mut thumbnail_skip: usize = 0;
-        if vtf.version >= 7.3 {
+        if vtf.version.1 >= 3 {
             let num_resources = bytes.pread::<u32>(68).unwrap();
             let mut j = 0;
             while j < num_resources {
@@ -158,15 +161,19 @@ where
                     bytes.pread::<u8>(pos + 1).unwrap(),
                     bytes.pread::<u8>(pos + 2).unwrap(),
                 );
-                // let flags = bytes.pread::<u8>(pos + 3).unwrap();
+                let flags = bytes.pread::<u8>(pos + 3).unwrap();
                 let offset = bytes.pread::<u32>(pos + 4).unwrap();
 
                 if tag == (0x30, 0x00, 0x00) {
                     skip = offset as usize;
-                }
-
-                if tag == (0x01, 0x00, 0x00) {
+                } else if tag == (0x01, 0x00, 0x00) {
                     thumbnail_skip = offset as usize;
+                } else {
+                    vtf.resource_entries.push(ResourceEntry {
+                        tag: tag,
+                        flags: flags,
+                        offset: offset,
+                    });
                 }
 
                 j += 1;

@@ -36,11 +36,11 @@ Library for parsing Valve/Source engine formats (wip)
 	<tr>
 		<td rowspan="7">headcrab-vtf</td>
 		<td>VTF v7.1</td>
-		<td align="right">No</td>
+		<td align="right">Partially</td>
 	</tr>
 	<tr>
 		<td>VTF v7.2</td>
-		<td align="right">No</td>
+		<td align="right">Partially</td>
 	</tr>
 	<tr>
 		<td>VTF v7.3</td>

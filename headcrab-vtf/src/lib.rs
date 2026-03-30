@@ -1,9 +1,10 @@
-use bitflags::bitflags;
 use scroll::Pread;
 
 mod dxt;
+mod flags;
 mod formats;
 
+pub use flags::*;
 use formats::*;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -29,36 +30,6 @@ pub enum ImageDataFormat {
     UVWQ8888,
     RGBA16161616,
     UVLX8888,
-}
-
-bitflags! {
-    pub struct VTFFlags: u32 {
-        const VTF_POINTSAMPLE = 0x00000001;
-        const VTF_TRILINEAR = 0x00000002;
-        const VTF_CLAMPS = 0x00000004;
-        const VTF_CLAMPT = 0x00000008;
-        const VTF_ANISOTROPIC = 0x00000010;
-        const VTF_HINT_DXT5 = 0x00000020;
-        const VTF_PWL_CORRECTED = 0x00000040;
-        const VTF_NORMAL = 0x00000080;
-        const VTF_NOMIP = 0x00000100;
-        const VTF_NOLOD = 0x00000200;
-        const VTF_ALL_MIPS = 0x00000400;
-        const VTF_PROCEDURAL = 0x00000800;
-        const VTF_ONEBITALPHA = 0x00001000;
-        const VTF_EIGHTBITALPHA = 0x00002000;
-        const VTF_ENVMAP = 0x00004000;
-        const VTF_RENDERTARGET = 0x00008000;
-        const VTF_DEPTHRENDERTARGET = 0x00010000;
-        const VTF_NODEBUGOVERRIDE = 0x00020000;
-        const VTF_SINGLECOPY = 0x00040000;
-        const VTF_PRE_SRGB = 0x00080000;
-        const VTF_NODEPTHBUFFER = 0x00800000;
-        const VTF_CLAMPU = 0x02000000;
-        const VTF_VERTEXTEXTURE = 0x04000000;
-        const VTF_SSBUMP = 0x08000000;
-        const VTF_BORDER = 0x20000000;
-    }
 }
 
 pub trait ColorChannel {}
@@ -96,8 +67,7 @@ where
     pub version: (u8, u8),
     pub width: u16,
     pub height: u16,
-    /// See VTFFlags
-    pub flags: u32,
+    pub flags: VTFFlags,
     pub frames: u16,
     pub first_frame: u16,
     pub reflectivity: (f32, f32, f32),
@@ -132,7 +102,8 @@ where
         let header_size: u32 = bytes.pread(12).unwrap();
         vtf.width = bytes.pread(16).unwrap();
         vtf.height = bytes.pread(18).unwrap();
-        vtf.flags = bytes.pread(20).unwrap();
+        let raw = bytes.pread(20).unwrap();
+        vtf.flags = VTFFlags::from_flags(raw);
         vtf.frames = bytes.pread(24).unwrap();
         vtf.first_frame = bytes.pread(26).unwrap();
         let refl_1: f32 = bytes.pread(32).unwrap();

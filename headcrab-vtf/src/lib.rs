@@ -151,7 +151,9 @@ where
             }
         }
 
-        let thumbnail_compressed = &bytes[thumbnail_skip as usize..thumbnail_skip as usize + 256];
+        let thumbnail_compressed = &bytes[thumbnail_skip as usize
+            ..thumbnail_skip as usize
+                + vtf.thumbnail_width as usize * vtf.thumbnail_height as usize];
         vtf.thumbnail = dxt::decode_dxt(ImageDataFormat::DXT1, thumbnail_compressed, 16, 16);
 
         use ImageDataFormat::*;
@@ -182,10 +184,9 @@ where
                         || vtf.texture_format == DXT3
                         || vtf.texture_format == DXT5
                     {
-                        let compressed = &bytes[skip..skip + current_size];
                         let decompressed = dxt::decode_dxt(
                             vtf.texture_format,
-                            compressed,
+                            &bytes[skip..],
                             current_width,
                             current_height,
                         );

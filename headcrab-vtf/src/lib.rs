@@ -1,9 +1,11 @@
 use scroll::Pread;
 
 mod dxt;
+mod error;
 mod flags;
 mod formats;
 
+pub use error::*;
 pub use flags::*;
 use formats::*;
 
@@ -93,9 +95,12 @@ impl<T> VTF<T>
 where
     T: ColorChannel + Default + From<u8> + From<u16>,
 {
-    pub fn from_bytes(bytes: &[u8]) -> VTF<T> {
+    pub fn from_bytes(bytes: &[u8]) -> Result<VTF<T>, Error> {
         let mut vtf: VTF<T> = VTF::default();
 
+        if bytes.pread::<u32>(0).unwrap() != 4609110 {
+            return Err(Error::InvalidHeader);
+        }
         let ver_major: u32 = bytes.pread(4).unwrap();
         let ver_minor: u32 = bytes.pread(8).unwrap();
         vtf.version = (ver_major as u8, ver_minor as u8);
@@ -171,11 +176,11 @@ where
             current_width = vtf.width as usize / 2_usize.pow(i.into());
             current_height = vtf.height as usize / 2_usize.pow(i.into());
             current_size = current_width * current_height;
-            let mut frames: Vec<Vec<Vec<T>>> = vec![vec![vec![]]];
+            let mut frames: Vec<Vec<Vec<T>>> = vec![];
 
             while j < vtf.frames {
                 let mut k = 0;
-                let mut slices: Vec<Vec<T>> = vec![vec![]];
+                let mut slices: Vec<Vec<T>> = vec![];
 
                 while k < vtf.depth {
                     let mut pixels: Vec<T> = vec![];
@@ -236,6 +241,6 @@ where
         }
         vtf.mipmaps.reverse();
 
-        vtf
+        Ok(vtf)
     }
 }

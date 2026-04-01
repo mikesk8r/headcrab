@@ -1,7 +1,3 @@
-use bitflags::bitflags;
-
-// bitflags! {
-//     pub struct VTFBitFlags: u32 {
 const VTF_POINTSAMPLE: u32 = 0x00000001;
 const VTF_TRILINEAR: u32 = 0x00000002;
 const VTF_CLAMPS: u32 = 0x00000004;
@@ -27,8 +23,6 @@ const VTF_CLAMPU: u32 = 0x02000000;
 const VTF_VERTEXTEXTURE: u32 = 0x04000000;
 const VTF_SSBUMP: u32 = 0x08000000;
 const VTF_BORDER: u32 = 0x20000000;
-//     }
-// }
 
 #[derive(Debug, Default, PartialEq)]
 pub struct VTFFlags {

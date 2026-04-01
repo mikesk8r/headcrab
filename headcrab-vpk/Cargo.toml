@@ -1,7 +1,6 @@
 [package]
-name = "headcrab-kv"
+name = "headcrab-vpk"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-logos = "0.16.1"

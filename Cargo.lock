@@ -367,10 +367,14 @@ dependencies = [
 
 [[package]]
 name = "headcrab-kv"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "logos",
 ]
+
+[[package]]
+name = "headcrab-vpk"
+version = "0.1.0"
 
 [[package]]
 name = "headcrab-vtf"

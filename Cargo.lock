@@ -375,6 +375,9 @@ dependencies = [
 [[package]]
 name = "headcrab-vpk"
 version = "0.1.0"
+dependencies = [
+ "scroll",
+]
 
 [[package]]
 name = "headcrab-vtf"

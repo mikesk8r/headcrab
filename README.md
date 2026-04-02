@@ -28,10 +28,14 @@ Library for parsing Valve/Source engine formats (wip)
 		<td><i>headcrab-mdl</i></td>
 		<td colspan="2"><i>Planned...</i></td>
 	</tr>
-	<tr></tr>
 	<tr>
-		<td><i>headcrab-vpk</i></td>
-		<td colspan="2"><i>Planned...</i></td>
+		<td rowspan="2">headcrab-vpk</td>
+		<td>VPK v1</td>
+		<td align="right">Partially</td>
+	</tr>
+	<tr>
+		<td>VPK v2</td>
+		<td align="right">Partially</td>
 	</tr>
 	<tr>
 		<td rowspan="7">headcrab-vtf</td>

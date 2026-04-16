@@ -6,8 +6,5 @@
 * Add better error handling
 
 ## headcrab-vtf
-* Finish all the VTF flags
-* Add support for more formats (I8, UV88, etc.)
 * Add support for more resource types
-* Parse mipmaps
-* Support for VTFs <7.3
+* Add support for more compressed formats

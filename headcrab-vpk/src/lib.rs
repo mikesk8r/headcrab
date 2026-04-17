@@ -126,7 +126,7 @@ pub struct VPKEntry {
 
 impl VPKEntry {
     pub fn read(&self) -> Result<Vec<u8>, Error> {
-        let file = std::fs::read(&self.path);
+        let file = std::fs::read(&self.file);
 
         if let Ok(bytes) = file {
             return Ok(

@@ -1,8 +1,7 @@
 # headcrab
 <div>
-	<a href="https://github.com/mikesk8r/headcrab/stargazers"><img alt="stars" src="https://img.shields.io/github/stars/mikesk8r/headcrab?&logo=github&logoColor=fff&style=flat"></a>
-	<a href="https://github.com/mikesk8r/headcrab/watchers"><img alt="watchers" src="https://img.shields.io/github/watchers/mikesk8r/headcrab?&logo=github&logoColor=fff&style=flat"></a>
-	<a href="https://github.com/mikesk8r/headcrab/blob/main/LICENSE"><img alt="license" src="https://img.shields.io/github/license/mikesk8r/headcrab?logo=libreofficewriter"></a>
+	<a href="https://codeberg.org/mikesk8r/headcrab/stars"><img alt="stars" src="https://img.shields.io/gitea/stars/mikesk8r/headcrab?gitea_url=https%3A%2F%2Fcodeberg.org&style=flat&logo=codeberg&logoColor=%23FFF"></a>
+	<a href="https://codeberg.org/mikesk8r/headcrab/src/branch/main/LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-blue?logo=codeberg&logoColor=%23FFF"></a>
 	<a href="https://discord.gg/7fkSwKfz77"><img alt="discord" src="https://img.shields.io/discord/1444194710800302223?logo=discord&logoColor=fff"></a>
 </div>
 Library for parsing Valve/Source engine formats (wip)

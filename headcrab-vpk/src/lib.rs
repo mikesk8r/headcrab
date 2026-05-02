@@ -1,4 +1,5 @@
 use scroll::Pread;
+use std::collections::HashMap;
 
 mod error;
 
@@ -7,12 +8,30 @@ pub use error::*;
 #[derive(Debug, Default)]
 pub struct VPK {
     pub version: u8,
-    pub entries: Vec<VPKEntry>,
+    // the string is the entry's path in the VPK
+    pub entries: HashMap<String, VPKEntry>,
 }
 
 impl VPK {
+    /// Try to read an entry from the VPK.
+    pub fn get<T>(&self, key: T) -> Option<&VPKEntry>
+    where
+        T: Sized + Eq + std::hash::Hash,
+        String: std::borrow::Borrow<T>,
+    {
+        self.entries.get(&key)
+    }
+
+    pub fn get_mut<T>(&mut self, key: T) -> Option<&mut VPKEntry>
+    where
+        T: Sized + Eq + std::hash::Hash,
+        String: std::borrow::Borrow<T>,
+    {
+        self.entries.get_mut(&key)
+    }
+
     /// Read a VPK from its `_dir` file.
-    pub fn from_vpk(path: String) -> Result<VPK, Error> {
+    pub fn from_path(path: String) -> Result<VPK, Error> {
         let file = std::fs::read(&path);
         let split = path.split('_').collect::<Vec<&str>>();
 
@@ -25,7 +44,7 @@ impl VPK {
 
             let mut vpk = VPK {
                 version: bytes.pread::<u32>(4).unwrap() as u8,
-                entries: vec![],
+                entries: std::collections::HashMap::new(),
             };
 
             let mut pos = if vpk.version == 1 { 12 } else { 28 };
@@ -62,13 +81,12 @@ impl VPK {
                     last_path = Some(path);
                 }
 
-                let file = if archive_index < 10 {
-                    format!("{}_00{}.vpk", split[0], archive_index)
-                } else if archive_index < 100 {
-                    format!("{}_0{}.vpk", split[0], archive_index)
-                } else {
-                    format!("{}_{}.vpk", split[0], archive_index)
-                };
+                let file = format!(
+                    "{}_{}{}.vpk",
+                    split[0],
+                    "0".repeat(3 - archive_index.checked_ilog10().unwrap_or(0) as usize),
+                    archive_index
+                );
 
                 let entry = VPKEntry {
                     entry_type: match extension {
@@ -81,18 +99,24 @@ impl VPK {
                     } else {
                         format!("{}/{}.{}", path, filename, extension)
                     },
+                    on_disk: true,
+                    contents: None,
                     file: file,
                     offset: entry_offset,
                     len: entry_length,
                 };
 
-                vpk.entries.push(entry);
+                vpk.entries.insert(entry.path.clone(), entry);
             }
 
             Ok(vpk)
         } else {
             return Err(Error::CannotFindFile);
         }
+    }
+
+    pub fn write(&self, buffer: &[u8]) -> Result<(), Error> {
+        todo!()
     }
 }
 
@@ -119,21 +143,48 @@ pub enum EntryType {
 pub struct VPKEntry {
     pub entry_type: EntryType,
     pub path: String,
+    pub on_disk: bool,
+    pub contents: Option<Vec<u8>>,
     file: String,
     offset: u32,
     len: u32,
 }
 
 impl VPKEntry {
-    pub fn read(&self) -> Result<Vec<u8>, Error> {
+    pub fn new(entry_type: EntryType, path: String, data: Vec<u8>) -> Self {
+        VPKEntry {
+            entry_type,
+            path,
+            on_disk: false,
+            contents: Some(data),
+            file: "".to_string(),
+            offset: 0,
+            len: 0,
+        }
+    }
+
+    /// Reads the VPK entry from disk if it's not already loaded.
+    pub fn read(&mut self) -> Result<(), Error> {
         let file = std::fs::read(&self.file);
 
+        if self.contents.is_some() {
+            return Ok(());
+        }
+
         if let Ok(bytes) = file {
-            return Ok(
-                bytes[self.offset as usize..self.offset as usize + self.len as usize].into(),
-            );
+            let data: Vec<u8> =
+                bytes[self.offset as usize..self.offset as usize + self.len as usize].into();
+
+            self.contents = Some(data);
+
+            Ok(())
         } else {
             return Err(Error::CannotFindFile);
         }
+    }
+
+    /// Uncaches the contents of the entry.
+    pub fn uncache(&mut self) {
+        self.contents = None;
     }
 }
